@@ -6,7 +6,7 @@ module Bashcov
     IGNORE_START_WITH = %w(# function)
 
     # Lines ending with one of these tokens are irrelevant for coverage
-    IGNORE_END_WITH = %w|(|
+    IGNORE_END_WITH = %w|( )|
 
     # Lines containing only one of these keywords are irrelevant for coverage
     IGNORE_IS = %w(esac if then else elif fi while do done { } ;;)
