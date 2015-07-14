@@ -17,6 +17,8 @@ module Bashcov
     def initialize(filename, coverage)
       @filename = File.expand_path(filename)
       @coverage = coverage
+      @in_case = false
+      @found_case_expression = false
 
       raise ArgumentError, "#{@filename} is not a file" unless File.file?(@filename)
     end
@@ -27,6 +29,7 @@ module Bashcov
     def uncovered_relevant_lines
       lineno = 0
       File.open(@filename, "rb").each_line do |line|
+        check_case_expression(line)
         if @coverage[lineno] == Bashcov::Line::IGNORED && revelant?(line)
           yield lineno
         end
@@ -36,6 +39,22 @@ module Bashcov
 
   private
 
+    def check_case_expression(line)
+      if line =~ /\Acase.*/
+        @in_case = true
+      elsif is_case_expression?(line)
+        @found_case_expression = true
+      elsif @found_case_expression and line.strip.end_with? ';;'
+        @found_case_expression = false
+      elsif line =~ /\Aesac\z/
+        @in_case = false
+      end
+    end
+
+    def is_case_expression?(line)
+      @in_case and !@found_case_expression and line.strip.end_with? ')'
+    end
+
     def revelant?(line)
       line.strip!
 
@@ -43,7 +62,8 @@ module Bashcov
         !IGNORE_IS.include? line and
         !line.start_with?(*IGNORE_START_WITH) and
         !line.end_with?(*IGNORE_END_WITH) and
-        line !~ /\A\w+\(\)/ # function declared without the 'function' keyword
+        line !~ /\A\w+\(\)/ and  # function declared without the 'function' keyword
+        !@found_case_expression  # lines in a case statement ending with ')'
     end
   end
 end
